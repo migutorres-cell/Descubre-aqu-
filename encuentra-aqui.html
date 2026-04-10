@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#F9F7F2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Encuentra Aquí">
+<title>Encuentra Aquí</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root {
+  --bg:#F9F7F2; --white:#FFFFFF; --surface:#F2F0EB; --border:#E8E4DC;
+  --text:#1A1A1A; --text2:#555550; --muted:#999990;
+  --primary:#C8B800; --primary-d:#9A8E00; --primary-l:#FFFACC;
+  --green:#2DB560; --green-d:#1E8A47; --green-l:#D6F5E3;
+  --shadow:0 2px 12px rgba(0,0,0,0.08); --shadow-lg:0 8px 32px rgba(0,0,0,0.13);
+  --r:18px; --rs:12px;
+  --cb:#3BA7FF; --cbl:#E0F0FF;
+  --ce:#A78BFA; --cel:#EDE9FF;
+  --ca:#2DB560; --cal:#D6F5E3;
+  --cr:#22C55E; --crl:#DCFCE7;
+  --cv:#F59E0B; --cvl:#FEF3C7;
+  --cf:#EC4899; --cfl:#FCE7F3;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;}
+.screen{display:none;flex-direction:column;height:100dvh;overflow:hidden;}
+.screen.active{display:flex;}
+
+/* SPLASH */
+#splash{background:linear-gradient(160deg,#1A1A0A,#263A10 60%,#1A2A08);align-items:center;justify-content:center;gap:14px;}
+.sp-icon{font-size:68px;animation:bounceIn .6s ease;}
+.sp-name{font-size:30px;font-weight:900;color:#fff;text-align:center;}
+.sp-name span{color:var(--primary);}
+.sp-tag{font-size:12px;color:rgba(255,255,255,.45);letter-spacing:2px;text-transform:uppercase;}
+.sp-dots{display:flex;gap:6px;margin-top:28px;}
+.sp-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.15);animation:dotPulse 1.4s infinite;}
+.sp-dot:nth-child(2){animation-delay:.2s}.sp-dot:nth-child(3){animation-delay:.4s}
+
+/* HOME */
+#home{background:var(--bg);}
+.h-head{background:linear-gradient(160deg,#1C2D0C,#2A3A10);padding:52px 20px 20px;flex-shrink:0;position:relative;overflow:hidden;}
+.h-head::after{content:'';position:absolute;bottom:-50px;right:-50px;width:170px;height:170px;background:radial-gradient(circle,rgba(212,192,0,.18),transparent 70%);border-radius:50%;}
+.h-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+.h-loc{font-size:12px;color:var(--primary);font-weight:700;margin-bottom:4px;}
+.h-title{font-size:23px;font-weight:900;color:#fff;line-height:1.15;}
+.h-title span{color:var(--primary);}
+.h-av{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.12);border:none;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.h-search{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:11px 16px;}
+.h-search input{background:none;border:none;outline:none;color:#fff;font-size:14px;font-family:inherit;flex:1;}
+.h-search input::placeholder{color:rgba(255,255,255,.38);}
+
+.qs{display:flex;gap:10px;padding:14px 20px 0;flex-shrink:0;}
+.qsc{flex:1;background:var(--white);border-radius:var(--rs);padding:11px 8px;text-align:center;border:1.5px solid var(--border);box-shadow:var(--shadow);}
+.qsc-n{font-size:19px;font-weight:900;color:var(--green);}
+.qsc-l{font-size:10px;color:var(--muted);font-weight:700;margin-top:1px;}
+
+.h-scroll{flex:1;overflow-y:auto;padding:14px 20px 90px;}
+.sec{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.sec-t{font-size:16px;font-weight:900;}
+.sec-a{font-size:12px;font-weight:800;color:var(--green);cursor:pointer;}
+
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+.ccat{border-radius:16px;padding:14px 8px 12px;cursor:pointer;border:1.5px solid var(--border);background:var(--white);text-align:center;box-shadow:var(--shadow);position:relative;overflow:hidden;transition:transform .15s;}
+.ccat:active{transform:scale(.95);}
+.ccat-bg{position:absolute;inset:0;border-radius:14px;opacity:.55;}
+.ccat-ico{font-size:27px;display:block;margin-bottom:5px;position:relative;}
+.ccat-n{font-size:10px;font-weight:900;line-height:1.2;position:relative;}
+.ccat-c{font-size:9px;color:var(--muted);margin-top:2px;font-weight:700;position:relative;}
+
+.nb-card{display:flex;align-items:center;gap:12px;background:var(--white);border-radius:16px;padding:13px 14px;margin-bottom:10px;border:1.5px solid var(--border);box-shadow:var(--shadow);cursor:pointer;transition:transform .15s;animation:fadeUp .3s ease both;}
+.nb-card:active{transform:scale(.98);}
+.nb-ico{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
+.nb-inf{flex:1;min-width:0;}
+.nb-name{font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nb-sub{font-size:11px;color:var(--muted);margin-top:2px;font-weight:600;}
+.nb-r{text-align:right;flex-shrink:0;}
+.badge-f{background:var(--green-l);color:var(--green-d);font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;}
+.badge-p{background:var(--primary-l);color:var(--primary-d);font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;}
+.nb-stars{font-size:11px;color:var(--muted);margin-top:4px;}
+
+.add-cta{width:100%;background:linear-gradient(135deg,var(--green),#1EA050);border:none;border-radius:16px;padding:15px;color:#fff;font-weight:900;font-size:15px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 20px rgba(45,181,96,.32);margin-top:4px;}
+
+/* MAP */
+#map-screen{background:var(--bg);position:relative;}
+#lmap{flex:1;z-index:1;}
+.map-top{position:absolute;top:0;left:0;right:0;z-index:100;padding:52px 16px 10px;background:linear-gradient(to bottom,rgba(249,247,242,.97) 65%,transparent);}
+.map-back{display:inline-flex;align-items:center;gap:6px;background:var(--white);border:1.5px solid var(--border);border-radius:var(--rs);padding:8px 14px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;box-shadow:var(--shadow);margin-bottom:10px;}
+.pills{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;}
+.pills::-webkit-scrollbar{display:none;}
+.pill{border:none;border-radius:20px;padding:7px 14px;font-size:11px;font-weight:800;white-space:nowrap;cursor:pointer;font-family:inherit;flex-shrink:0;box-shadow:var(--shadow);}
+.pill-off{background:var(--white);color:var(--text2);border:1.5px solid var(--border);}
+.pill-on{color:#fff;}
+.map-loc{position:absolute;bottom:100px;right:16px;z-index:100;width:50px;height:50px;border-radius:50%;background:var(--white);border:1.5px solid var(--border);font-size:22px;cursor:pointer;box-shadow:var(--shadow-lg);display:flex;align-items:center;justify-content:center;}
+
+/* DETAIL PANEL — Cagapp style */
+.det{position:absolute;bottom:0;left:0;right:0;z-index:200;background:var(--white);border-radius:26px 26px 0 0;box-shadow:0 -6px 40px rgba(0,0,0,.13);transform:translateY(102%);transition:transform .38s cubic-bezier(.32,.72,0,1);max-height:80vh;overflow-y:auto;}
+.det.open{transform:translateY(0);}
+.det-drag{width:44px;height:5px;background:var(--border);border-radius:3px;margin:14px auto 0;}
+
+.det-photo{height:140px;border-radius:18px;margin:12px 16px 0;display:flex;align-items:center;justify-content:center;font-size:60px;position:relative;overflow:hidden;}
+.det-photo-label{position:absolute;bottom:8px;right:12px;font-size:10px;font-weight:800;color:rgba(0,0,0,.35);background:rgba(255,255,255,.6);padding:3px 8px;border-radius:20px;backdrop-filter:blur(4px);}
+
+.det-body{padding:16px 18px 24px;}
+.det-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.det-badge{font-size:10px;font-weight:900;padding:4px 11px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px;}
+.det-close{width:32px;height:32px;border-radius:50%;background:var(--surface);border:none;font-size:14px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;}
+.det-verified{font-size:11px;font-weight:800;color:var(--green);display:flex;align-items:center;gap:4px;margin-bottom:6px;}
+.det-name{font-size:22px;font-weight:900;line-height:1.2;letter-spacing:-.3px;margin-bottom:5px;}
+.det-addr{font-size:12px;color:var(--muted);font-weight:700;margin-bottom:14px;}
+
+.det-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.ds{background:var(--surface);border-radius:var(--rs);padding:11px 8px;text-align:center;border:1px solid var(--border);}
+.ds-ico{font-size:20px;display:block;margin-bottom:3px;}
+.ds-v{font-size:13px;font-weight:900;}
+.ds-l{font-size:9px;color:var(--muted);font-weight:700;margin-top:1px;}
+
+.det-rating{margin-bottom:14px;}
+.det-r-label{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.det-r-row{display:flex;align-items:center;gap:10px;}
+.det-r-num{font-size:34px;font-weight:900;line-height:1;}
+.det-r-stars{font-size:22px;letter-spacing:1px;}
+.det-r-cnt{font-size:11px;color:var(--muted);font-weight:700;margin-top:2px;}
+
+.det-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.dt{font-size:11px;font-weight:800;padding:5px 11px;border-radius:20px;background:var(--surface);color:var(--text2);border:1px solid var(--border);}
+
+.det-desc{font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:16px;font-weight:600;}
+.det-btns{display:flex;gap:10px;}
+.btn-go{flex:1;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--green),#1EA050);color:#fff;font-weight:900;font-size:14px;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(45,181,96,.28);}
+.btn-qr{flex:1;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--primary),var(--primary-d));color:#fff;font-weight:900;font-size:14px;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(200,184,0,.28);}
+
+/* ADD */
+#add-screen{background:var(--bg);}
+.add-head{background:linear-gradient(135deg,#1C2D0C,#2A3A10);padding:52px 20px 22px;flex-shrink:0;}
+.back-btn{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:none;border-radius:10px;padding:7px 14px;color:#fff;font-weight:800;font-size:12px;cursor:pointer;margin-bottom:14px;font-family:inherit;}
+.add-ttl{font-size:22px;font-weight:900;color:#fff;}
+.add-ttl span{color:var(--primary);}
+.add-sub{font-size:12px;color:rgba(255,255,255,.55);margin-top:5px;font-weight:600;}
+.add-scr{flex:1;overflow-y:auto;padding:20px 20px 90px;}
+.flb{font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;display:block;}
+.fg{margin-bottom:20px;}
+.fi{width:100%;background:var(--white);border:1.5px solid var(--border);border-radius:var(--rs);padding:13px 15px;color:var(--text);font-size:14px;font-family:inherit;outline:none;font-weight:700;box-shadow:var(--shadow);}
+.fi:focus{border-color:var(--green);}
+.fi::placeholder{color:var(--muted);font-weight:600;}
+textarea.fi{resize:none;height:80px;}
+.tg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.tb{background:var(--white);border:2px solid var(--border);border-radius:14px;padding:13px 6px;cursor:pointer;text-align:center;font-family:inherit;box-shadow:var(--shadow);}
+.tb-ico{font-size:24px;display:block;margin-bottom:5px;}
+.tb-n{font-size:10px;font-weight:900;}
+.tog-row{display:flex;gap:8px;}
+.tog{flex:1;padding:12px;border-radius:12px;border:2px solid var(--border);background:var(--white);color:var(--muted);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;box-shadow:var(--shadow);}
+.tog-f{background:var(--green-l);border-color:var(--green);color:var(--green-d);}
+.tog-p{background:var(--primary-l);border-color:var(--primary);color:var(--primary-d);}
+.tags-f{display:flex;flex-wrap:wrap;gap:8px;}
+.tgt{padding:7px 13px;border-radius:20px;border:1.5px solid var(--border);background:var(--white);color:var(--muted);font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;}
+.tgt.on{background:rgba(45,181,96,.1);border-color:var(--green);color:var(--green-d);}
+.ss{display:flex;gap:8px;}
+.sst{font-size:30px;cursor:pointer;filter:grayscale(1) opacity(.35);}
+.sst.on{filter:none;}
+.sub-btn{width:100%;background:linear-gradient(135deg,var(--green),#1EA050);color:#fff;border:none;border-radius:16px;padding:15px;font-weight:900;font-size:15px;cursor:pointer;font-family:inherit;box-shadow:0 4px 18px rgba(45,181,96,.28);}
+
+/* PROFILE */
+#profile-screen{background:var(--bg);}
+.pr-head{background:linear-gradient(160deg,#1C2D0C,#2A3A10);padding:52px 20px 26px;text-align:center;flex-shrink:0;}
+.pr-av{width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--green));display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 12px;box-shadow:0 4px 20px rgba(200,184,0,.35);}
+.pr-name{font-size:20px;font-weight:900;color:#fff;}
+.pr-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;color:var(--primary);background:rgba(200,184,0,.15);padding:5px 14px;border-radius:20px;margin-top:6px;}
+.pr-scr{flex:1;overflow-y:auto;padding:16px 20px 90px;}
+.pr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px;}
+.prs{background:var(--white);border-radius:14px;padding:14px;text-align:center;border:1.5px solid var(--border);box-shadow:var(--shadow);}
+.prs-n{font-size:26px;font-weight:900;color:var(--green);}
+.prs-l{font-size:10px;color:var(--muted);margin-top:2px;font-weight:700;}
+.mi{display:flex;align-items:center;gap:14px;background:var(--white);border-radius:16px;padding:14px 15px;margin-bottom:10px;border:1.5px solid var(--border);box-shadow:var(--shadow);cursor:pointer;}
+.mi-ico{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.mi-inf{flex:1;}
+.mi-t{font-size:14px;font-weight:800;}
+.mi-s{font-size:11px;color:var(--muted);margin-top:2px;font-weight:600;}
+.mi-a{font-size:16px;color:var(--muted);}
+
+/* QR */
+.ov{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);display:none;align-items:flex-end;justify-content:center;}
+.ov.open{display:flex;}
+.ms{background:var(--white);border-radius:26px 26px 0 0;padding:10px 22px 48px;width:100%;max-width:480px;animation:slideUp .35s cubic-bezier(.32,.72,0,1);}
+.ms-drag{width:44px;height:5px;background:var(--border);border-radius:3px;margin:0 auto 18px;}
+.qr-ttl{font-size:20px;font-weight:900;text-align:center;}
+.qr-pl{font-size:13px;color:var(--muted);font-weight:700;text-align:center;margin-top:3px;}
+.qr-pr{font-size:32px;font-weight:900;color:var(--green);text-align:center;margin:4px 0 2px;}
+.qr-cw{width:180px;height:180px;background:var(--white);border:3px solid var(--border);border-radius:20px;margin:12px auto;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-lg);}
+.qr-tl{font-size:11px;color:var(--muted);font-weight:700;text-align:center;}
+.qr-t{font-size:36px;font-weight:900;text-align:center;font-family:'Nunito';}
+.qr-ins{font-size:12px;color:var(--muted);font-weight:700;text-align:center;margin:10px 0 16px;line-height:1.55;}
+
+/* NAV */
+.bnav{position:fixed;bottom:0;left:0;right:0;z-index:300;background:rgba(255,255,255,.97);backdrop-filter:blur(20px);border-top:1.5px solid var(--border);display:flex;padding:10px 0 20px;}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;border:none;background:none;cursor:pointer;font-family:inherit;padding:3px 0;}
+.nb-i{font-size:22px;transition:transform .2s;}
+.nb-l{font-size:10px;font-weight:800;color:var(--muted);}
+.nb-d{width:4px;height:4px;border-radius:50%;background:var(--green);opacity:0;}
+.nb.active .nb-l{color:var(--green);}
+.nb.active .nb-i{transform:translateY(-2px);}
+.nb.active .nb-d{opacity:1;}
+
+.toast{position:fixed;top:56px;left:50%;transform:translateX(-50%) translateY(-16px);background:var(--text);color:#fff;border-radius:12px;padding:10px 18px;font-size:13px;font-weight:800;z-index:1000;opacity:0;transition:all .3s;white-space:nowrap;pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* Leaflet */
+.leaflet-container{background:#e8ecf0;}
+.leaflet-tile{saturate(.9)brightness(1.05);}
+.cpin{background:none;border:none;}
+.pp{display:flex;align-items:center;gap:4px;padding:6px 11px;border-radius:20px;font-size:11px;font-weight:900;color:#fff;box-shadow:0 3px 12px rgba(0,0,0,.22);white-space:nowrap;cursor:pointer;}
+.pt{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;margin:0 auto;}
+.leaflet-control-attribution{display:none;}
+
+@keyframes bounceIn{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes dotPulse{0%,80%,100%{background:rgba(255,255,255,.12)}40%{background:var(--primary)}}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+::-webkit-scrollbar{width:0;}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<!-- SPLASH -->
+<div class="screen active" id="splash">
+  <span class="sp-icon">🗺️</span>
+  <div class="sp-name">Encuentra<br><span>Aquí</span></div>
+  <div class="sp-tag">Servicios ocultos en tu ciudad</div>
+  <div class="sp-dots"><div class="sp-dot"></div><div class="sp-dot"></div><div class="sp-dot"></div></div>
+</div>
+
+<!-- HOME -->
+<div class="screen" id="home">
+  <div class="h-head">
+    <div class="h-top">
+      <div><div class="h-loc">📍 Tu ciudad, Chile</div><div class="h-title">Encuentra<br><span>Aquí</span></div></div>
+      <button class="h-av" onclick="navTo('profile')">👤</button>
+    </div>
+    <div class="h-search"><span style="font-size:16px">🔍</span><input type="text" placeholder="Buscar servicio, lugar o barrio..."></div>
+  </div>
+  <div class="qs">
+    <div class="qsc"><div class="qsc-n">423</div><div class="qsc-l">Puntos</div></div>
+    <div class="qsc"><div class="qsc-n">7</div><div class="qsc-l">Categorías</div></div>
+    <div class="qsc"><div class="qsc-n">1.4k</div><div class="qsc-l">Usuarios</div></div>
+  </div>
+  <div class="h-scroll">
+    <div class="sec" style="margin-top:4px"><div class="sec-t">¿Qué buscas?</div></div>
+    <div class="cat-grid">
+      <div class="ccat" onclick="openMap('banos')"><div class="ccat-bg" style="background:var(--cbl)"></div><span class="ccat-ico">🚻</span><div class="ccat-n" style="color:var(--cb)">Baños</div><div class="ccat-c">142 puntos</div></div>
+      <div class="ccat" onclick="openMap('estacionamiento')"><div class="ccat-bg" style="background:var(--cel)"></div><span class="ccat-ico">🅿️</span><div class="ccat-n" style="color:var(--ce)">Estacionam.</div><div class="ccat-c">89 puntos</div></div>
+      <div class="ccat" onclick="openMap('agua')"><div class="ccat-bg" style="background:var(--cal)"></div><span class="ccat-ico">💧</span><div class="ccat-n" style="color:var(--ca)">Agua Gratis</div><div class="ccat-c">57 puntos</div></div>
+      <div class="ccat" onclick="openMap('reciclaje')"><div class="ccat-bg" style="background:var(--crl)"></div><span class="ccat-ico">♻️</span><div class="ccat-n" style="color:var(--cr)">Reciclaje</div><div class="ccat-c">73 puntos</div></div>
+      <div class="ccat" onclick="openMap('veterinarios')"><div class="ccat-bg" style="background:var(--cvl)"></div><span class="ccat-ico">🐾</span><div class="ccat-n" style="color:var(--cv)">Veterinarios</div><div class="ccat-c">38 puntos</div></div>
+      <div class="ccat" onclick="openMap('fotografia')"><div class="ccat-bg" style="background:var(--cfl)"></div><span class="ccat-ico">📷</span><div class="ccat-n" style="color:var(--cf)">Fotografía</div><div class="ccat-c">24 puntos</div></div>
+    </div>
+    <div class="sec"><div class="sec-t">Cerca de ti 📍</div><div class="sec-a" onclick="openMap(null)">Ver mapa →</div></div>
+    <div id="nb-list"></div>
+    <button class="add-cta" onclick="navTo('add')">➕ Agregar un servicio nuevo</button>
+  </div>
+</div>
+
+<!-- MAP -->
+<div class="screen" id="map-screen">
+  <div id="lmap"></div>
+  <div class="map-top">
+    <button class="map-back" onclick="navTo('home')">← Volver</button>
+    <div class="pills" id="pills"></div>
+  </div>
+  <button class="map-loc" onclick="locateUser()">📍</button>
+  <div class="det" id="det">
+    <div class="det-drag"></div>
+    <div class="det-photo" id="det-photo"><span id="det-photo-ico" style="font-size:56px"></span><div class="det-photo-label">📸 Foto real</div></div>
+    <div class="det-body">
+      <div class="det-top">
+        <div><span class="det-badge" id="det-badge"></span></div>
+        <button class="det-close" onclick="closeDet()">✕</button>
+      </div>
+      <div class="det-verified">✅ Verificado por la comunidad</div>
+      <div class="det-name" id="det-name"></div>
+      <div class="det-addr" id="det-addr"></div>
+      <div class="det-stats">
+        <div class="ds"><span class="ds-ico" id="ds-price-ico"></span><div class="ds-v" id="ds-price"></div><div class="ds-l">Precio</div></div>
+        <div class="ds"><span class="ds-ico">✅</span><div class="ds-v">Abierto</div><div class="ds-l">Estado</div></div>
+        <div class="ds"><span class="ds-ico">⏱️</span><div class="ds-v">15 min</div><div class="ds-l">Reserva</div></div>
+      </div>
+      <div class="det-rating">
+        <div class="det-r-label">Calificación de usuarios</div>
+        <div class="det-r-row">
+          <div class="det-r-num" id="det-rnum"></div>
+          <div><div class="det-r-stars" id="det-rstars"></div><div class="det-r-cnt" id="det-rcnt"></div></div>
+        </div>
+      </div>
+      <div class="det-tags" id="det-tags"></div>
+      <div class="det-desc" id="det-desc"></div>
+      <div class="det-btns" id="det-btns"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD -->
+<div class="screen" id="add-screen">
+  <div class="add-head">
+    <button class="back-btn" onclick="navTo('home')">← Volver</button>
+    <div class="add-ttl">Agregar <span>Servicio</span></div>
+    <div class="add-sub">Ayuda a tu comunidad mapeando un lugar</div>
+  </div>
+  <div class="add-scr">
+    <div class="fg"><label class="flb">Tipo de servicio</label>
+      <div class="tg">
+        <button class="tb" onclick="sTp(this,'banos')"><span class="tb-ico">🚻</span><span class="tb-n" style="color:var(--cb)">Baños</span></button>
+        <button class="tb" onclick="sTp(this,'estacionamiento')"><span class="tb-ico">🅿️</span><span class="tb-n" style="color:var(--ce)">Estacionam.</span></button>
+        <button class="tb" onclick="sTp(this,'agua')"><span class="tb-ico">💧</span><span class="tb-n" style="color:var(--ca)">Agua</span></button>
+        <button class="tb" onclick="sTp(this,'reciclaje')"><span class="tb-ico">♻️</span><span class="tb-n" style="color:var(--cr)">Reciclaje</span></button>
+        <button class="tb" onclick="sTp(this,'veterinarios')"><span class="tb-ico">🐾</span><span class="tb-n" style="color:var(--cv)">Veterinario</span></button>
+        <button class="tb" onclick="sTp(this,'fotografia')"><span class="tb-ico">📷</span><span class="tb-n" style="color:var(--cf)">Fotografía</span></button>
+      </div>
+    </div>
+    <div class="fg"><label class="flb">Nombre del lugar</label><input class="fi" id="add-name" type="text" placeholder="Ej: Baño Plaza de Armas"></div>
+    <div class="fg"><label class="flb">Dirección o referencia</label><input class="fi" id="add-addr" type="text" placeholder="Calle, número, referencia exacta"></div>
+    <div class="fg"><label class="flb">¿Qué deben saber los usuarios?</label><textarea class="fi" id="add-desc" placeholder="Ej: Solo en horario comercial, hay que pedir llave en caja..."></textarea></div>
+    <div class="fg"><label class="flb">¿Tiene costo?</label>
+      <div class="tog-row"><button class="tog" id="tbf" onclick="sFr(true)">✅ Gratuito</button><button class="tog" id="tbp" onclick="sFr(false)">💰 Con costo</button></div>
+    </div>
+    <div class="fg" id="pw" style="display:none"><label class="flb">¿Cuánto cuesta?</label><input class="fi" id="add-price" type="text" placeholder="Ej: $500, $1.000/hora"></div>
+    <div class="fg"><label class="flb">Características</label>
+      <div class="tags-f">
+        <button class="tgt" onclick="tTag(this)">♿ Accesible</button>
+        <button class="tgt" onclick="tTag(this)">🧻 Con papel</button>
+        <button class="tgt" onclick="tTag(this)">👶 Cambiador</button>
+        <button class="tgt" onclick="tTag(this)">🔒 Con llave</button>
+        <button class="tgt" onclick="tTag(this)">🌙 24 horas</button>
+        <button class="tgt" onclick="tTag(this)">🛡️ Vigilado</button>
+        <button class="tgt" onclick="tTag(this)">🎞️ Carrete</button>
+        <button class="tgt" onclick="tTag(this)">📸 Sesiones</button>
+        <button class="tgt" onclick="tTag(this)">🪪 Carnet</button>
+      </div>
+    </div>
+    <div class="fg"><label class="flb">Tu calificación</label>
+      <div class="ss" id="ss"><span class="sst" onclick="sSt(1)">⭐</span><span class="sst" onclick="sSt(2)">⭐</span><span class="sst" onclick="sSt(3)">⭐</span><span class="sst" onclick="sSt(4)">⭐</span><span class="sst" onclick="sSt(5)">⭐</span></div>
+    </div>
+    <button class="sub-btn" onclick="submit()">📍 Publicar Servicio</button>
+  </div>
+</div>
+
+<!-- PROFILE -->
+<div class="screen" id="profile-screen">
+  <div class="pr-head">
+    <div class="pr-av">👤</div>
+    <div class="pr-name">Colaborador</div>
+    <div class="pr-badge">🌟 Nivel Explorador</div>
+  </div>
+  <div class="pr-scr">
+    <div class="pr-stats">
+      <div class="prs"><div class="prs-n" id="u-pts">0</div><div class="prs-l">Agregados</div></div>
+      <div class="prs"><div class="prs-n">0</div><div class="prs-l">Reseñas</div></div>
+      <div class="prs"><div class="prs-n">0</div><div class="prs-l">Útil para</div></div>
+    </div>
+    <div class="sec-t" style="margin-bottom:14px">Mi actividad</div>
+    <div class="mi" onclick="navTo('add')"><div class="mi-ico" style="background:var(--green-l)">➕</div><div class="mi-inf"><div class="mi-t">Agregar servicio</div><div class="mi-s">Suma un lugar al mapa</div></div><div class="mi-a">›</div></div>
+    <div class="mi"><div class="mi-ico" style="background:var(--cbl)">📍</div><div class="mi-inf"><div class="mi-t">Mis puntos</div><div class="mi-s" id="u-pts-l">0 puntos publicados</div></div><div class="mi-a">›</div></div>
+    <div class="mi"><div class="mi-ico" style="background:var(--primary-l)">⭐</div><div class="mi-inf"><div class="mi-t">Mis reseñas</div><div class="mi-s">0 reseñas escritas</div></div><div class="mi-a">›</div></div>
+    <div class="mi"><div class="mi-ico" style="background:var(--cel)">🏆</div><div class="mi-inf"><div class="mi-t">Ranking colaboradores</div><div class="mi-s">Top 10 de tu ciudad</div></div><div class="mi-a">›</div></div>
+    <div class="mi"><div class="mi-ico" style="background:var(--surface)">⚙️</div><div class="mi-inf"><div class="mi-t">Configuración</div><div class="mi-s">Notificaciones y cuenta</div></div><div class="mi-a">›</div></div>
+    <div style="text-align:center;margin-top:24px"><div style="font-size:22px;margin-bottom:6px">🇨🇱</div><div style="font-size:12px;color:var(--muted);font-weight:700">Versión 1.0.0 · Hecho con ❤️ en Chile</div></div>
+  </div>
+</div>
+
+<!-- QR MODAL -->
+<div class="ov" id="qr-ov">
+  <div class="ms">
+    <div class="ms-drag"></div>
+    <div class="qr-ttl">Pago con QR 📲</div>
+    <div class="qr-pl" id="qr-pl"></div>
+    <div class="qr-pr" id="qr-pr"></div>
+    <div class="qr-cw"><canvas id="qr-c" width="140" height="140"></canvas></div>
+    <div class="qr-tl">Código válido por</div>
+    <div class="qr-t" id="qr-t">15:00</div>
+    <div class="qr-ins">Muestra este código al llegar al lugar.<br>Sin consumo obligatorio. Sin explicaciones. 🙌</div>
+    <button class="sub-btn" onclick="closeQR()">✓ Listo, voy al lugar</button>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bnav">
+  <button class="nb active" id="nb-home" onclick="navTo('home')"><span class="nb-i">🏠</span><span class="nb-l">Inicio</span><span class="nb-d"></span></button>
+  <button class="nb" id="nb-map" onclick="navTo('map')"><span class="nb-i">🗺️</span><span class="nb-l">Mapa</span><span class="nb-d"></span></button>
+  <button class="nb" id="nb-add" onclick="navTo('add')"><span class="nb-i">➕</span><span class="nb-l">Agregar</span><span class="nb-d"></span></button>
+  <button class="nb" id="nb-profile" onclick="navTo('profile')"><span class="nb-i">👤</span><span class="nb-l">Perfil</span><span class="nb-d"></span></button>
+</div>
+
+<script>
+const C = {
+  banos:{icon:'🚻',label:'Baños',color:'#3BA7FF',light:'#E0F0FF'},
+  estacionamiento:{icon:'🅿️',label:'Estacionamiento',color:'#A78BFA',light:'#EDE9FF'},
+  agua:{icon:'💧',label:'Agua Gratuita',color:'#2DB560',light:'#D6F5E3'},
+  reciclaje:{icon:'♻️',label:'Reciclaje',color:'#22C55E',light:'#DCFCE7'},
+  veterinarios:{icon:'🐾',label:'Veterinario',color:'#F59E0B',light:'#FEF3C7'},
+  fotografia:{icon:'📷',label:'Fotografía',color:'#EC4899',light:'#FCE7F3'},
+};
+const P = [
+  {id:1,cat:'banos',name:'Baño GAM',dist:'120m',free:true,rating:4.5,rev:38,tags:['♿ Accesible','🧻 Con papel','👶 Cambiador'],lat:-33.4380,lng:-70.6453,desc:'Baño limpio y amplio dentro del Centro Cultural GAM. Acceso gratuito en horario del centro cultural.'},
+  {id:2,cat:'banos',name:'Baño Plaza Italia',dist:'340m',free:false,price:'$500',rating:3.8,rev:12,tags:['🧻 Con papel'],lat:-33.4370,lng:-70.6480,desc:'Baño privado con cobro. Limpio y bien mantenido. Abierto de 9am a 10pm todos los días.'},
+  {id:3,cat:'estacionamiento',name:'Estac. Galería España',dist:'200m',free:false,price:'$1.500/hr',rating:4.2,rev:21,tags:['🛡️ Vigilado','🌙 24 horas'],lat:-33.4395,lng:-70.6440,desc:'Estacionamiento cubierto con vigilancia permanente. Acceso por calle Agustinas.'},
+  {id:4,cat:'agua',name:'Fuente Parque Bustamante',dist:'450m',free:true,rating:4.9,rev:67,tags:['🌙 24 horas'],lat:-33.4355,lng:-70.6420,desc:'Fuente de agua potable pública siempre disponible. Perfecta para deportistas y ciclistas.'},
+  {id:5,cat:'reciclaje',name:'Punto Verde Supermercado',dist:'280m',free:true,rating:4.0,rev:14,tags:['♿ Accesible'],lat:-33.4410,lng:-70.6470,desc:'Acepta: plástico, vidrio, papel y cartón. Disponible en horario del supermercado.'},
+  {id:6,cat:'veterinarios',name:'Clínica Vet. Barrio Italia',dist:'600m',free:false,price:'Consulta $5.000',rating:4.7,rev:44,tags:['🌙 24 horas','♿ Accesible'],lat:-33.4420,lng:-70.6490,desc:'Atención de urgencia disponible las 24 hrs. Precios económicos, sin cita previa.'},
+  {id:7,cat:'banos',name:'Baño Municipalidad',dist:'510m',free:true,rating:4.3,rev:29,tags:['♿ Accesible','🧻 Con papel'],lat:-33.4360,lng:-70.6510,desc:'Baño municipal de acceso público y gratuito. Disponible en horario de oficina.'},
+  {id:8,cat:'agua',name:'Fuente Cerro Santa Lucía',dist:'700m',free:true,rating:4.6,rev:51,tags:['🌙 24 horas'],lat:-33.4390,lng:-70.6430,desc:'Fuente histórica con agua potable gratuita en el cerro.'},
+  {id:9,cat:'estacionamiento',name:'Estac. Iglesia San Francisco',dist:'380m',free:false,price:'$1.000/hr',rating:3.9,rev:8,tags:['🛡️ Vigilado'],lat:-33.4405,lng:-70.6455,desc:'Disponible fines de semana y fuera de horario de misa.'},
+  {id:10,cat:'reciclaje',name:'Punto Acopio CONAF',dist:'820m',free:true,rating:4.1,rev:17,tags:['♿ Accesible'],lat:-33.4430,lng:-70.6500,desc:'Centro de acopio oficial. Acepta electrónicos, pilas y residuos especiales.'},
+  {id:11,cat:'fotografia',name:'Lab. Foto Barrio Italia',dist:'350m',free:false,price:'Revelado $3.500',rating:4.8,rev:63,tags:['🎞️ Carrete','🖨️ Impresión'],lat:-33.4368,lng:-70.6462,desc:'Laboratorio tradicional. Revelan carretes en 24 hrs. También impresión digital y ampliaciones.'},
+  {id:12,cat:'fotografia',name:'Fotógrafo Independiente Lautaro',dist:'520m',free:false,price:'Sesión $15.000',rating:4.9,rev:82,tags:['📸 Sesiones','🏠 A domicilio'],lat:-33.4415,lng:-70.6445,desc:'Fotógrafo de barrio con 10 años de experiencia. Sesiones familiares, graduaciones y eventos.'},
+  {id:13,cat:'fotografia',name:'Fotos Carnet Express',dist:'180m',free:false,price:'Carnet $2.000',rating:4.3,rev:35,tags:['🪪 Carnet','⚡ Express'],lat:-33.4385,lng:-70.6475,desc:'Fotos carnet listas en 5 minutos. También fotos para documentos y pasaporte.'},
+];
+
+let map=null,mks=[],filt=null,uPts=0,selTp=null,isFree=null,selSt=0,qTick=null;
+
+setTimeout(()=>{showScreen('home');buildNB();},2200);
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='map-screen')initMap();closeDet();}
+function navTo(k){const m={home:'home',map:'map-screen',add:'add-screen',profile:'profile-screen'};showScreen(m[k]);document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));const n={home:'nb-home',map:'nb-map',add:'nb-add',profile:'nb-profile'};if(n[k])document.getElementById(n[k]).classList.add('active');}
+
+function buildNB(){
+  document.getElementById('nb-list').innerHTML=P.slice(0,5).map((p,i)=>{
+    const c=C[p.cat];
+    return`<div class="nb-card" style="animation-delay:${i*.07}s" onclick="openDetail(${p.id})">
+      <div class="nb-ico" style="background:${c.light}">${c.icon}</div>
+      <div class="nb-inf"><div class="nb-name">${p.name}</div><div class="nb-sub">${c.label} · ${p.dist}</div></div>
+      <div class="nb-r">${p.free?`<span class="badge-f">Gratis</span>`:`<span class="badge-p">${p.price}</span>`}<div class="nb-stars">⭐ ${p.rating} (${p.rev})</div></div>
+    </div>`;
+  }).join('');
+}
+
+function initMap(){
+  if(map){buildMks();return;}
+  map=L.map('lmap',{zoomControl:false,attributionControl:false}).setView([-33.44,-70.65],15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  buildMks();buildPills();
+  map.on('click',closeDet);
+}
+
+function buildMks(){
+  mks.forEach(m=>map.removeLayer(m));mks=[];
+  (filt?P.filter(p=>p.cat===filt):P).forEach(p=>{
+    const c=C[p.cat];
+    const ico=L.divIcon({className:'cpin',html:`<div><div class="pp" style="background:${c.color}">${c.icon}<span>${p.dist}</span></div><div class="pt" style="border-top:8px solid ${c.color}"></div></div>`,iconSize:[90,44],iconAnchor:[45,44]});
+    mks.push(L.marker([p.lat,p.lng],{icon:ico}).addTo(map).on('click',e=>{L.DomEvent.stopPropagation(e);openDetail(p.id);}));
+  });
+}
+
+function buildPills(){
+  document.getElementById('pills').innerHTML=
+    `<button class="pill ${filt===null?'pill-on':'pill-off'}" style="${filt===null?'background:var(--green)':''}" onclick="setF(null)">Todos</button>`+
+    Object.entries(C).map(([k,c])=>`<button class="pill ${filt===k?'pill-on':'pill-off'}" style="${filt===k?`background:${c.color}`:''}" onclick="setF('${k}')">${c.icon} ${c.label}</button>`).join('');
+}
+
+function setF(f){filt=f;buildMks();buildPills();}
+function openMap(f){filt=f;navTo('map');}
+function locateUser(){if(!navigator.geolocation){toast('GPS no disponible');return;}navigator.geolocation.getCurrentPosition(p=>{map.setView([p.coords.latitude,p.coords.longitude],16);toast('📍 Ubicación encontrada');},()=>toast('No se pudo obtener tu ubicación'));}
+
+function openDetail(id){
+  const p=P.find(x=>x.id===id);if(!p)return;
+  const c=C[p.cat];
+  document.getElementById('det-photo').style.background=`linear-gradient(135deg,${c.light},#fff)`;
+  document.getElementById('det-photo-ico').textContent=c.icon;
+  const b=document.getElementById('det-badge');b.textContent=`${c.icon} ${c.label}`;b.style.cssText=`background:${c.light};color:${c.color}`;
+  document.getElementById('det-name').textContent=p.name;
+  document.getElementById('det-addr').textContent=`📍 ${p.dist} de distancia`;
+  document.getElementById('ds-price-ico').textContent=p.free?'🆓':'💰';
+  document.getElementById('ds-price').textContent=p.free?'Gratis':p.price;
+  document.getElementById('det-rnum').textContent=p.rating;
+  document.getElementById('det-rstars').textContent='⭐'.repeat(Math.floor(p.rating));
+  document.getElementById('det-rcnt').textContent=`${p.rev} reseñas de usuarios`;
+  document.getElementById('det-tags').innerHTML=(p.tags||[]).map(t=>`<span class="dt">${t}</span>`).join('');
+  document.getElementById('det-desc').textContent=p.desc;
+  const btns=document.getElementById('det-btns');
+  btns.innerHTML=`<button class="btn-go" onclick="toast('🗺️ Abriendo navegación...')">🗺️ Cómo llegar</button>`;
+  if(!p.free)btns.innerHTML+=`<button class="btn-qr" onclick="openQR(${p.id})">📲 Pagar QR</button>`;
+  if(document.getElementById('map-screen').classList.contains('active')){document.getElementById('det').classList.add('open');if(map)map.setView([p.lat,p.lng],16);}
+  else{navTo('map');setTimeout(()=>{document.getElementById('det').classList.add('open');if(map)map.setView([p.lat,p.lng],16);},350);}
+}
+
+function closeDet(){document.getElementById('det').classList.remove('open');}
+
+function openQR(id){
+  const p=P.find(x=>x.id===id);if(!p)return;
+  document.getElementById('qr-pl').textContent=p.name;
+  document.getElementById('qr-pr').textContent=p.price||'';
+  drawQR();startQRTimer();
+  document.getElementById('qr-ov').classList.add('open');
+}
+
+function drawQR(){
+  const cv=document.getElementById('qr-c'),c=cv.getContext('2d');
+  c.fillStyle='#fff';c.fillRect(0,0,140,140);
+  c.fillStyle='#1A1A1A';
+  const pat=[[1,1,1,1,1,1,1],[1,0,0,0,0,0,1],[1,0,1,1,1,0,1],[1,0,1,0,1,0,1],[1,0,1,1,1,0,1],[1,0,0,0,0,0,1],[1,1,1,1,1,1,1]];
+  [[4,4],[80,4],[4,80]].forEach(([ox,oy])=>pat.forEach((r,ri)=>r.forEach((v,ci)=>{if(v)c.fillRect(ci*8+ox,ri*8+oy,7,7);})));
+  for(let r=0;r<14;r++)for(let ci=0;ci<14;ci++)if(Math.random()>.5)c.fillRect(ci*8+20,r*8+20,6,6);
+  c.fillStyle='#C8B800';c.beginPath();c.arc(70,70,10,0,Math.PI*2);c.fill();c.fillStyle='#fff';c.font='bold 14px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('DS',70,70);
+}
+
+function startQRTimer(){let s=900;clearInterval(qTick);qTick=setInterval(()=>{s--;if(s<=0){clearInterval(qTick);closeQR();return;}const m=String(Math.floor(s/60)).padStart(2,'0'),ss=String(s%60).padStart(2,'0');document.getElementById('qr-t').textContent=`${m}:${ss}`;},1000);}
+function closeQR(){clearInterval(qTick);document.getElementById('qr-ov').classList.remove('open');}
+
+function sTp(el,type){document.querySelectorAll('.tb').forEach(b=>{b.style.borderColor='var(--border)';b.style.background='var(--white)';});const c=C[type];el.style.borderColor=c.color;el.style.background=c.light;selTp=type;}
+function sFr(f){isFree=f;document.getElementById('tbf').className='tog'+(f?' tog-f':'');document.getElementById('tbp').className='tog'+(!f?' tog-p':'');document.getElementById('pw').style.display=f?'none':'block';}
+function tTag(el){el.classList.toggle('on');}
+function sSt(v){selSt=v;document.querySelectorAll('.sst').forEach((s,i)=>s.classList.toggle('on',i<v));}
+
+function submit(){
+  const name=document.getElementById('add-name').value.trim();
+  if(!selTp){toast('⚠️ Elige el tipo de servicio');return;}
+  if(!name){toast('⚠️ Ingresa el nombre del lugar');return;}
+  if(isFree===null){toast('⚠️ Indica si es gratuito o tiene costo');return;}
+  uPts++;
+  document.getElementById('u-pts').textContent=uPts;
+  document.getElementById('u-pts-l').textContent=`${uPts} punto${uPts!==1?'s':''} publicado${uPts!==1?'s':''}`;
+  document.getElementById('add-name').value='';document.getElementById('add-addr').value='';document.getElementById('add-desc').value='';document.getElementById('add-price').value='';
+  document.querySelectorAll('.tb').forEach(b=>{b.style.borderColor='var(--border)';b.style.background='var(--white)';});
+  document.querySelectorAll('.tgt').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.sst').forEach(s=>s.classList.remove('on'));
+  document.getElementById('tbf').className='tog';document.getElementById('tbp').className='tog';
+  document.getElementById('pw').style.display='none';
+  selTp=null;isFree=null;selSt=0;
+  toast('✅ ¡Servicio publicado! Gracias por colaborar 🙌');
+  setTimeout(()=>navTo('home'),1600);
+}
+
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2800);}
+</script>
+</body>
+</html>
